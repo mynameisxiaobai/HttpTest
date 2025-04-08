@@ -60,6 +60,9 @@
 
         const bufferLength = analyser.fftSize;
         const dataArray = new Uint8Array(bufferLength);
+        
+        // 调整敏感度（0~1 之间，数值越小，波形变化越平缓）
+        const sensitivity = 0.5;
 
         function draw() {
           requestAnimationFrame(draw);
@@ -80,13 +83,14 @@
           const sliceWidth = canvas.width / bufferLength;
           let x = 0;
           for (let i = 0; i < bufferLength; i++) {
-            const v = dataArray[i] / 128.0;
-            const y = v * canvas.height / 2;
+            // 将数据归一化到 [-1, 1] 区间
+            const normalized = (dataArray[i] - 128) / 128.0;
+            // 应用敏感度调节，得到 y 坐标（波形绘制以画布垂直中线为基准）
+            const y = canvas.height / 2 + normalized * sensitivity * (canvas.height / 2);
             if (i === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
             x += sliceWidth;
           }
-          ctx.lineTo(canvas.width, canvas.height / 2);
           ctx.stroke();
         }
 
