@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>声波韵律</title>
+    <style>
+        /* 保持原有样式不变 */
+        :root {
+            --primary-color: hsl(200, 100%, 50%);
+            --grid-color: rgba(255,255,255,0.1);
+        }
+        
+        body {
+            margin: 0;
+            background: #000;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        canvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .control {
+            position: fixed;
+            bottom: 20px;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 20px rgba(0,255,255,0.3);
+            border: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <canvas id="grid"></canvas>
+        <canvas id="wave"></canvas>
+        <button class="control" id="controlBtn"></button>
+    </div>
+
+<script>
+// 修复初始化问题
+const WAVE_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'];
+let currentColorIndex = 0;
+
+const waveCanvas = document.getElementById('wave');
+const gridCanvas = document.getElementById('grid');
+const [waveCtx, gridCtx] = [waveCanvas, gridCanvas].map(c => c.getContext('2d'));
+
+function initCanvas() {
+    const dpr = window.devicePixelRatio || 1;
+    
+    // 修复Canvas缩放逻辑
+    [waveCanvas, gridCanvas].forEach(canvas => {
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+        canvas.style.width = window.innerWidth + 'px';
+        canvas.style.height = window.innerHeight + 'px';
+        ctx.scale(dpr, dpr);
+    });
+
+    drawGrid();
+}
+
+function drawGrid() {
+    gridCtx.strokeStyle = "rgba(255,255,255,0.1)"; // 修复变量引用
+    gridCtx.lineWidth = 0.5;
+    
+    // 水平线
+    for(let y = 0; y < gridCanvas.height; y += 30) {
+        gridCtx.beginPath();
+        gridCtx.moveTo(0, y);
+        gridCtx.lineTo(gridCanvas.width, y);
+        gridCtx.stroke();
+    }
+    
+    // 垂直线
+    for(let x = 0; x < gridCanvas.width; x += 30) {
+        gridCtx.beginPath();
+        gridCtx.moveTo(x, 0);
+        gridCtx.lineTo(x, gridCanvas.height);
+        gridCtx.stroke();
+    }
+}
+
+// 增强音频处理
+let audioContext, analyser, dataArray;
+const controlBtn = document.getElementById('controlBtn');
+
+controlBtn.addEventListener('click', async () => {
+    if (!audioContext) {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            initAudio(stream);
+            controlBtn.style.backgroundColor = '#ff4444';
+            requestAnimationFrame(draw);
+        } catch(err) {
+            showError('需要麦克风权限，请刷新页面后允许权限');
+        }
+    } else {
+        stopAudio();
+        controlBtn.style.backgroundColor = var(--primary-color);
+    }
+});
+
+function initAudio(stream) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;
+    
+    const source = audioContext.createMediaStreamSource(stream);
+    source.connect(analyser);
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+}
+
+function draw() {
+    if (!analyser) return;
+
+    analyser.getByteTimeDomainData(dataArray);
+    
+    waveCtx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+    
+    waveCtx.strokeStyle = WAVE_COLORS[currentColorIndex];
+    waveCtx.lineWidth = 4;
+    waveCtx.beginPath();
+    
+    const centerY = waveCanvas.height/2;
+    const step = Math.ceil(dataArray.length / 150);
+
+    for(let i = 0; i < dataArray.length; i += step) {
+        const value = (dataArray[i] - 128) / 128;
+        const x = (i / dataArray.length) * waveCanvas.width;
+        const y = centerY + value * centerY * 0.8;
+        
+        i === 0 ? waveCtx.moveTo(x, y) : waveCtx.lineTo(x, y);
+    }
+    
+    waveCtx.stroke();
+    waveCtx.filter = 'blur(8px)';
+    waveCtx.globalAlpha = 0.3;
+    waveCtx.stroke();
+    waveCtx.filter = 'none';
+    waveCtx.globalAlpha = 1;
+    
+    requestAnimationFrame(draw);
+}
+
+function stopAudio() {
+    if (audioContext) {
+        audioContext.close();
+        audioContext = null;
+    }
+}
+
+function showError(msg) {
+    const errDiv = document.createElement('div');
+    errDiv.style = 'position:fixed; top:20px; left:10px; right:10px; background:red; color:white; padding:15px;';
+    errDiv.textContent = msg;
+    document.body.appendChild(errDiv);
+    setTimeout(() => errDiv.remove(), 3000);
+}
+
+// 初始化
+initCanvas();
+window.addEventListener('resize', initCanvas);
+
+setInterval(() => {
+    currentColorIndex = (currentColorIndex + 1) % WAVE_COLORS.length;
+}, 10000);
+</script>
+</body>
+</html>
