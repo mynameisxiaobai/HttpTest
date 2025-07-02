@@ -1,106 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Voice Waveform Visualizer</title>
-  <style>
-    body {
-      margin: 0;
-      background: radial-gradient(ellipse at center, #001f3f, #000);
-      color: white;
-      font-family: sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      overflow: hidden;
-    }
-    canvas {
-      width: 100vw;
-      height: 100vh;
-      display: block;
-    }
-    .text-overlay {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center;
-    }
-    .text-overlay h1 {
-      font-size: 1.2rem;
-    }
-  </style>
-</head>
-<body>
-  <canvas id="waveform"></canvas>
-  <div class="text-overlay">
-    <h1>说点什么试试...</h1>
-  </div>
-  <script>
-    const canvas = document.getElementById('waveform');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    async function setupAudio() {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('当前浏览器不支持麦克风访问，请使用 Chrome、Safari 等现代浏览器，并确保是 HTTPS 页面');
-        return;
-      }
-
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const source = audioContext.createMediaStreamSource(stream);
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 2048;
-        source.connect(analyser);
-
-        const bufferLength = analyser.fftSize;
-        const dataArray = new Uint8Array(bufferLength);
-        
-        // 调整敏感度（0~1 之间，数值越小，波形变化越平缓）
-        const sensitivity = 0.5;
-
-        function draw() {
-          requestAnimationFrame(draw);
-
-          analyser.getByteTimeDomainData(dataArray);
-
-          ctx.fillStyle = '#000';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-          ctx.lineWidth = 2;
-          const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-          gradient.addColorStop(0, '#00ffff');
-          gradient.addColorStop(0.5, '#ff00ff');
-          gradient.addColorStop(1, '#ffff00');
-          ctx.strokeStyle = gradient;
-
-          ctx.beginPath();
-          const sliceWidth = canvas.width / bufferLength;
-          let x = 0;
-          for (let i = 0; i < bufferLength; i++) {
-            // 将数据归一化到 [-1, 1] 区间
-            const normalized = (dataArray[i] - 128) / 128.0;
-            // 应用敏感度调节，得到 y 坐标（波形绘制以画布垂直中线为基准）
-            const y = canvas.height / 2 + normalized * sensitivity * (canvas.height / 2);
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-            x += sliceWidth;
-          }
-          ctx.stroke();
-        }
-
-        draw();
-      } catch (err) {
-        alert('麦克风访问失败: ' + err.message);
-      }
-    }
-
-    setupAudio();
-  </script>
-</body>
+ <head>
+    <style>
+       a {
+           font-size: 100px
+           }
+    </style>
+ </head>
+ <body>
+    <a href="https://tilehome.go.link/aFTbA">Deep Link</a>
+ </body>
 </html>
